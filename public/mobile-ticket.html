@@ -1,0 +1,17 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>手機購票</title><link rel="stylesheet" href="/css/style.css"></head><body>
+<header><strong>SMART THEME PARK</strong><a href="/">返回</a></header><main><section class="card"><h1>手機網上購票</h1>
+<p class="muted">付款服務尚未啟用。此階段只建立待付款訂單，不會收款，也不會生成有效 QR Code。</p>
+<label>門票類型</label><select id="type"><option value="adult">成人票 — SGD 50</option><option value="child">兒童票 — SGD 30</option><option value="senior">長者票 — SGD 35</option><option value="vip">VIP — SGD 120</option></select>
+<label>數量（最多 10 張）</label><input id="qty" type="number" min="1" max="10" value="1">
+<label>入園日期</label><input id="date" type="date">
+<label>聯絡電郵（選填，付款服務接入後使用）</label><input id="email" type="email" placeholder="name@example.com">
+<button id="create">建立待付款訂單</button><p id="msg" class="muted"></p></section></main>
+<script type="module">
+import {call} from "/js/common.js";
+document.querySelector("#date").value=new Date().toISOString().slice(0,10);
+document.querySelector("#create").onclick=async()=>{
+ const m=document.querySelector("#msg"),b=document.querySelector("#create");b.disabled=true;m.textContent="正在建立訂單…";
+ try{const r=await call("createOnlinePendingOrder",{ticketType:document.querySelector("#type").value,quantity:Number(document.querySelector("#qty").value),visitDate:document.querySelector("#date").value,email:document.querySelector("#email").value});m.textContent=`訂單已建立：${r.data.orderId}。目前付款未啟用，訂單仍為待付款，沒有有效 QR Code。`;}
+ catch(e){m.textContent=e.message||"建立訂單失敗";}finally{b.disabled=false;}
+};
+</script></body></html>

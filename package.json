@@ -1,0 +1,9 @@
+{
+  "name": "smart-theme-park",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "serve": "firebase emulators:start",
+    "deploy": "firebase deploy"
+  }
+}

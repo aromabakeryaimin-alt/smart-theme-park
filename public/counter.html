@@ -1,0 +1,25 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>櫃檯售票</title><link rel="stylesheet" href="/css/style.css"><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script></head><body>
+<header><strong>🎟️ 櫃檯售票中心</strong><a href="/staff.html">員工登入</a></header><main>
+<section class="card"><h1>現場售票 / 現金收款</h1><div class="grid">
+<div><label>門票類型</label><select id="type"><option value="adult">成人票 — SGD 50</option><option value="child">兒童票 — SGD 30</option><option value="senior">長者票 — SGD 35</option><option value="vip">VIP — SGD 120</option></select></div>
+<div><label>數量（最多 10 張）</label><input id="qty" type="number" min="1" max="10" value="1"></div>
+<div><label>入園日期</label><input id="date" type="date"></div><div><label>遊客稱呼（選填）</label><input id="customer" maxlength="80" placeholder="例如：Walk-in Guest"></div></div>
+<p class="muted">請先實際收妥現金，再按「確認已收現金並出票」。</p><button id="issue">確認已收現金並出票</button><p id="msg" class="muted"></p></section>
+<section id="result" class="card" hidden><h2>電子門票已生成</h2><p class="success">收款已確認。請讓遊客逐張拍照保存 QR Code。</p><div id="tickets"></div><button class="secondary" onclick="window.print()">列印 / 儲存 PDF（選用）</button></section>
+</main>
+<script type="module">
+import {auth,call,requireRole} from "/js/common.js";
+let allowed=false;
+requireRole(["admin","counter"],(u,c)=>{allowed=!!u&&!!c;if(u&&!c)document.querySelector("#msg").textContent="此帳戶沒有櫃檯權限。";});
+document.querySelector("#date").value=new Date().toISOString().slice(0,10);
+document.querySelector("#issue").onclick=async()=>{
+ const msg=document.querySelector("#msg"); if(!allowed){msg.textContent="請先以有效櫃檯員工登入。";return;}
+ const btn=document.querySelector("#issue");btn.disabled=true;msg.textContent="正在建立訂單及電子票…";
+ try{
+  const r=await call("issueCounterTickets",{ticketType:document.querySelector("#type").value,quantity:Number(document.querySelector("#qty").value),visitDate:document.querySelector("#date").value,customerLabel:document.querySelector("#customer").value});
+  const data=r.data;const box=document.querySelector("#tickets");box.innerHTML="";
+  data.tickets.forEach((t,i)=>{const el=document.createElement("article");el.className="ticket";el.innerHTML=`<h2>SMART THEME PARK</h2><p>電子入場票 ${i+1} / ${data.tickets.length}</p><div class="row"><b>票券編號</b><span>${t.ticketId}</span></div><div class="row"><b>票種</b><span>${t.ticketType.toUpperCase()}</span></div><div class="row"><b>入園日期</b><span>${t.visitDate}</span></div><div id="qr${i}"></div><p><b>請遊客拍照保存此 QR Code</b></p><small>此票只可入園一次，請勿轉發。</small>`;box.appendChild(el);new QRCode(el.querySelector(`#qr${i}`),{text:t.token,width:220,height:220,correctLevel:QRCode.CorrectLevel.H});});
+  document.querySelector("#result").hidden=false;msg.textContent=`出票成功。訂單 ${data.orderId} · 合計 SGD ${data.total}`;document.querySelector("#result").scrollIntoView({behavior:"smooth"});
+ }catch(e){msg.textContent=e.message||"出票失敗";}finally{btn.disabled=false;}
+};
+</script></body></html>

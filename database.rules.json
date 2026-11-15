@@ -1,0 +1,28 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "staff": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": false
+      }
+    },
+    "orders": {
+      ".read": false,
+      ".write": false
+    },
+    "tickets": {
+      ".read": false,
+      ".write": false
+    },
+    "checkins": {
+      ".read": false,
+      ".write": false
+    },
+    "auditLogs": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

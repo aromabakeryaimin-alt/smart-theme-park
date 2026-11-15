@@ -1,0 +1,54 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Smart Theme Park Admin</title><link rel="stylesheet" href="/css/style.css"></head><body>
+<header><strong>SMART THEME PARK · ADMIN</strong><span id="session" class="muted">統一管理入口</span></header><main>
+<section id="loginCard" class="card" style="max-width:520px;margin:auto">
+<h1>員工／管理員登入</h1><p class="muted">只需員工編號及密碼。登入後會按職位顯示可用功能。</p>
+<label>員工編號／管理員帳號</label><input id="employeeId" autocomplete="username" placeholder="例如 ADMIN001">
+<label>密碼</label><input id="password" type="password" autocomplete="current-password">
+<button id="login">登入</button><p id="loginMsg" class="muted"></p>
+<details><summary>首次設定最高管理員</summary><p class="muted">只在新專案首次初始化時使用。需要部署者提供的一次性初始化密鑰；完成後必須關閉初始化功能。</p>
+<label>初始化密鑰</label><input id="setupSecret" type="password">
+<label>管理員帳號</label><input id="setupId" placeholder="ADMIN001">
+<label>管理員密碼（至少 16 字元）</label><input id="setupPassword" type="password">
+<label>管理員名稱</label><input id="setupName" placeholder="Park Administrator">
+<button class="secondary" id="setup">建立最高管理員</button><p id="setupMsg" class="muted"></p></details>
+</section>
+<section id="workspace" hidden>
+<section class="card"><div class="row"><h1 id="welcome">管理工作台</h1><button id="logout" class="secondary" style="width:auto">登出</button></div><p id="roleText" class="muted"></p></section>
+<section id="staffPanel" class="card" hidden><h2>員工帳戶及職位管理</h2><div class="grid">
+<div><label>員工編號</label><input id="newId" placeholder="STAFF002"></div>
+<div><label>員工姓名</label><input id="newName" placeholder="員工姓名"></div>
+<div><label>初始密碼（至少 12 字元）</label><input id="newPassword" type="password"></div>
+<div><label>職位</label><select id="newRole"><option value="counter">Ticket Staff｜櫃檯售票</option><option value="gate">Gate Staff｜入口核驗</option><option value="supervisor">Supervisor｜營運主管</option><option value="finance">Finance｜財務</option><option value="admin">Admin｜管理員</option></select></div></div><button id="createStaff">建立員工帳戶</button><p id="staffMsg" class="muted"></p></section>
+<section id="counterPanel" class="card" hidden><h2>現場櫃檯售票（人臉門票）</h2><p>現金收妥後登記遊客人臉。此票種不生成 QR Code。</p>
+<label>門票類型</label><select id="counterType"><option value="adult">成人票 — SGD 50</option><option value="child">兒童票 — SGD 30</option><option value="senior">長者票 — SGD 35</option><option value="vip">VIP — SGD 120</option></select>
+<label>數量</label><input id="counterQty" type="number" min="1" max="10" value="1">
+<label>入園日期</label><input id="counterDate" type="date">
+<label>遊客姓名／識別稱呼（選填）</label><input id="guestName" placeholder="Guest">
+<label style="display:flex;gap:10px;align-items:center"><input id="faceConsent" type="checkbox" style="width:auto">遊客已閱讀說明並明確同意處理人臉生物識別資料</label>
+<div class="card"><h3>人臉登記設備</h3><p class="error">尚未接入正式人臉辨識供應商。此處不會把普通照片上傳或當作人臉模板。</p><p class="muted">正式啟用需接入有活體檢測的 SDK，並由伺服器驗證供應商回傳的已驗證登記 ID。未完成整合前不可完成出票。</p></div>
+<button id="faceIssue">完成登記並收現金出票</button><p id="counterMsg" class="muted"></p></section>
+<section id="gatePanel" class="card" hidden><h2>入口核驗</h2><p>請使用已接入的活體人臉核驗設備。現階段人臉供應商尚未接入，不能執行真實核銷。</p><p class="error">人臉核驗未啟用：請轉人工核對並依樂園現場政策處理，不可假裝系統已核驗。</p></section>
+<section id="supervisorPanel" class="card" hidden><h2>營運主管</h2><p>可查看訂單及營運摘要的報表模組將在下一階段接入。</p></section>
+<section id="financePanel" class="card" hidden><h2>財務</h2><p>付款對帳及退款模組將在付款供應商確定後接入。</p></section>
+</section></main>
+<script type="module">
+import {auth,staffLogin,call,requireRole} from "/js/common.js";
+const $=id=>document.getElementById(id); let claims=null;
+$("login").onclick=async()=>{ $("loginMsg").textContent="登入中…";try{claims=await staffLogin($("employeeId").value,$("password").value);render();}catch(e){$("loginMsg").textContent=e.message||"登入失敗";}};
+$("setup").onclick=async()=>{const m=$("setupMsg");m.textContent="正在初始化…";try{const r=await fetch("/bootstrapAdmin",{method:"POST",headers:{"Content-Type":"application/json","x-bootstrap-secret":$("setupSecret").value},body:JSON.stringify({employeeId:$("setupId").value,password:$("setupPassword").value,displayName:$("setupName").value})});const d=await r.json();if(!r.ok)throw new Error(d.error||"初始化失敗");m.textContent="最高管理員建立成功。請使用管理員帳號登入，並立即關閉初始化功能。";}catch(e){m.textContent=e.message;}};
+function render(){
+ $("loginCard").hidden=true;$("workspace").hidden=false;
+ const role=claims.role, id=claims.employeeId||"";
+ $("welcome").textContent=`歡迎，${id}`;$("roleText").textContent=`目前職位：${role}`;
+ $("staffPanel").hidden=role!=="admin";
+ $("counterPanel").hidden=!["admin","counter"].includes(role);
+ $("gatePanel").hidden=!["admin","gate"].includes(role);
+ $("supervisorPanel").hidden=!["admin","supervisor"].includes(role);
+ $("financePanel").hidden=!["admin","finance"].includes(role);
+ $("session").textContent="已登入";
+}
+$("logout").onclick=async()=>{const {signOut}=await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js");await signOut(auth);location.reload();};
+$("createStaff").onclick=async()=>{try{await call("createStaff",{employeeId:$("newId").value,displayName:$("newName").value,password:$("newPassword").value,role:$("newRole").value});$("staffMsg").textContent="員工建立成功。";}catch(e){$("staffMsg").textContent=e.message||"建立失敗";}};
+$("faceIssue").onclick=async()=>{const m=$("counterMsg");if(!$("faceConsent").checked){m.textContent="必須先取得遊客明確同意。";return;}m.textContent="人臉 SDK 尚未接入，為防止錯誤出票，系統已阻止建立人臉門票。";};
+$("counterDate").value=new Date().toISOString().slice(0,10);
+</script></body></html>

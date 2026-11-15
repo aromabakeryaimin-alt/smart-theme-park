@@ -1,0 +1,6 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>員工登入</title><link rel="stylesheet" href="/css/style.css"></head><body>
+<header><strong>SMART THEME PARK</strong><span>員工入口</span></header><main><section class="card" style="max-width:480px;margin:auto"><h1>員工登入</h1><label>員工編號</label><input id="employeeId" autocomplete="username" placeholder="例如 STAFF001"><label>有效密碼</label><input id="password" type="password" autocomplete="current-password" placeholder="輸入密碼"><button id="login">登入</button><p id="msg" class="muted"></p></section></main>
+<script type="module">
+import {staffLogin} from "/js/common.js";
+document.querySelector("#login").onclick=async()=>{const msg=document.querySelector("#msg");msg.textContent="登入中…";try{const c=await staffLogin(document.querySelector("#employeeId").value,document.querySelector("#password").value);msg.textContent="登入成功";location.href=c.role==="admin"?"/admin.html":c.role==="gate"?"/entrance.html":"/counter.html";}catch(e){msg.textContent=e.message||"登入失敗";msg.className="error";}};
+</script></body></html>

@@ -1,0 +1,14 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>iPad 入園核驗</title><link rel="stylesheet" href="/css/style.css"><script src="https://unpkg.com/html5-qrcode"></script></head><body>
+<header><strong>🚪 SMART THEME PARK</strong><span>iPad 入園核驗站</span></header><main>
+<section class="card"><h1>掃描電子門票</h1><p class="muted">先掃描遊客手機上的 QR Code，再按現場身份核驗流程處理。</p><div id="reader" style="max-width:520px"></div><label>或手動輸入掃描 token（測試用途）</label><input id="token" placeholder="QR token"><label>閘口編號</label><input id="gate" value="GATE-01"><label style="display:flex;gap:10px;align-items:center"><input id="identityChecked" type="checkbox" style="width:auto">已完成現場本人身份核對（正式人臉 SDK 未接入前使用人工核對）</label><button id="redeem">確認身份並核銷門票</button><div id="status" class="muted"></div></section>
+<section class="card"><h2>人臉核驗</h2><p>狀態：<b class="error">尚未連接正式人臉辨識服務</b></p><p class="muted">此版本不會假裝人臉核驗成功。正式上線前需整合支援活體檢測的辨識 SDK，先取得遊客明確同意，再將核驗結果交由伺服器驗證。沒有完成此步驟時，請使用人工核對身份的程序。</p></section>
+</main>
+<script type="module">
+import {call,requireRole} from "/js/common.js";
+let allowed=false,scanned="";
+requireRole(["admin","gate"],(u,c)=>{allowed=!!u&&!!c;});
+const status=document.querySelector("#status");
+async function redeem(){if(!allowed){status.textContent="請先以入口員工帳戶登入。";return;}const token=document.querySelector("#token").value.trim();if(!token){status.textContent="請先掃描 QR Code。";return;}if(!document.querySelector("#identityChecked").checked){status.textContent="請先完成本人身份核對，尚未核銷門票。";status.className="error";return;}try{const r=await call("redeemTicket",{token,gate:document.querySelector("#gate").value,method:"qr+manual-identity"});status.textContent=`核銷成功：${r.data.ticketId}。請放行遊客。`;status.className="success";document.querySelector("#token").value="";document.querySelector("#identityChecked").checked=false;}catch(e){status.textContent=e.message||"核銷失敗";status.className="error";}}
+document.querySelector("#redeem").onclick=redeem;
+try{const scanner=new Html5Qrcode("reader");scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:240,height:240}},async decoded=>{document.querySelector("#token").value=decoded;await scanner.stop();}).catch(()=>{status.textContent="無法啟動攝影機，請檢查 iPad 權限。";});}catch(e){}
+</script></body></html>
